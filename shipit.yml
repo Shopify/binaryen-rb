@@ -1,0 +1,6 @@
+deploy:
+  override:
+    - buildkite-trigger binaryen-rb-publish-package
+
+dependencies:
+  override: []
