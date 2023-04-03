@@ -8,6 +8,7 @@ steps:
   - label: Publish to Cloudsmith
     git:
       history: shallow
+    timeout: 10m
     run:
       - bundle: ~
       - bundle exec rake
