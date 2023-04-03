@@ -17,7 +17,7 @@ STAGING_DIR = "tmp/staging"
 PKG_DIR = "pkg"
 
 def download_and_verify_platform_files(platform, file, sha256_file)
-  folder = File.join(TMP_DIR, file.split("-")[0..1].join("-").gsub("macos", "darwin"))
+  folder = File.join(TMP_DIR, file.split("-")[0..1].join("-"))
   FileUtils.mkdir_p(folder)
 
   sha256_url = "#{GITHUB_REPO}/#{sha256_file}"
@@ -51,21 +51,30 @@ def build_gem_for_platform(platform)
 
   puts "Building gem for #{ruby_platform}"
 
-  FileUtils.rm_rf(staging_path)
   FileUtils.mkdir_p(staging_path)
   FileUtils.rm_f(File.join("pkg", file_name))
   FileUtils.mkdir_p(PKG_DIR)
 
-  sh("tar -xzf #{tarball} -C #{staging_path}")
-  FileUtils.mv(File.join(staging_path, "binaryen-#{BINARYEN_VERSION}"), File.join(staging_path, "vendor"))
+  FileUtils.mkdir_p(File.join(staging_path, "vendor"))
+  sh("tar -xzf #{tarball} --strip-components=1 -C #{staging_path}/vendor")
   FileUtils.cp_r("lib", staging_path)
   FileUtils.cp("binaryen.gemspec", staging_path)
 
   outpath = File.expand_path(File.join(PKG_DIR, "binaryen-#{Binaryen::VERSION}-#{ruby_platform}.gem"))
 
-  Dir.chdir(staging_path) do
-    sh("gem build binaryen.gemspec --platform #{ruby_platform} --output #{outpath}")
+  # chdir is not thread-safe, so we need to fork
+  pid = fork do
+    Dir.chdir(staging_path) do
+      sh("gem build binaryen.gemspec --platform #{ruby_platform} --output #{outpath}")
+    end
   end
+
+  Process.wait(pid)
+end
+
+task :clean do
+  rm_rf TMP_DIR
+  rm_rf PKG_DIR
 end
 
 task "build:arm64-darwin" do
@@ -98,7 +107,7 @@ task "build:x86_64-darwin" do
   build_gem_for_platform("x86_64-macos")
 end
 
-task build: ["build:arm64-darwin", "build:x86_64-linux", "build:x86_64-darwin"]
+multitask build: ["build:arm64-darwin", "build:x86_64-linux", "build:x86_64-darwin"]
 
 task :install do
   local_platform = RUBY_PLATFORM.gsub(/darwin\d+$/, "darwin")
@@ -113,4 +122,4 @@ end
 
 RuboCop::RakeTask.new
 
-task default: [:build, :install, :test, :rubocop]
+task default: [:clean, :build, :install, :test, :rubocop]
