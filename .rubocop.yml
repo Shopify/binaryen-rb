@@ -1,0 +1,8 @@
+inherit_gem:
+  rubocop-shopify: rubocop.yml
+
+AllCops:
+  NewCops: enable
+  Exclude:
+    - tmp/**/*.rb
+    - pkg/**/*.rb
