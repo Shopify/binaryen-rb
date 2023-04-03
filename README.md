@@ -9,7 +9,7 @@ A small gem which vendors [`binaryen` releases][binaryen] for common Ruby platfo
 
 ## How to install this library
 
-Add `gem "binaryen-rb", source: "https://pkgs.shopify.io/basic/gems/ruby"` to your Gemfile.
+Add `gem "binaryen", source: "https://pkgs.shopify.io/basic/gems/ruby"` to your Gemfile.
 
 ## How to use this library
 

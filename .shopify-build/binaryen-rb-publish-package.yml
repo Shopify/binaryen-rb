@@ -1,0 +1,20 @@
+containers:
+  default:
+    build:
+      from: ubuntu-latest
+      type: ci
+
+steps:
+  - label: Publish to Cloudsmith
+    git:
+      history: shallow
+    run:
+      - bundle: ~
+      - bundle exec rake
+    publish:
+      package:
+        repository_name: gems
+        package_type: ruby
+        artifacts:
+          - path: pkg
+            patterns: ["*.gem"]
