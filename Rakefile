@@ -2,6 +2,7 @@
 
 require_relative "lib/binaryen/version"
 require "rake"
+require "rake/testtask"
 require "fileutils"
 require "tempfile"
 require "open-uri"
@@ -97,4 +98,17 @@ task "build:x86_64-darwin" do
   build_gem_for_platform("x86_64-macos")
 end
 
+task :install do
+  local_platform = RUBY_PLATFORM.gsub(/darwin\d+$/, "darwin")
+
+  sh "gem install pkg/binaryen-#{Binaryen::VERSION}-#{local_platform}.gem --install-dir tmp/gem_home --no-document"
+end
+
 task build: ["build:arm64-darwin", "build:x86_64-linux", "build:x86_64-darwin"]
+
+Rake::TestTask.new do |t|
+  t.libs = FileList["test", "tmp/gem_home/gems/*/lib"]
+  t.test_files = FileList["test/**/*_test.rb"]
+end
+
+task default: [:build, :install, :test]

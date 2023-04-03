@@ -10,7 +10,7 @@ steps:
       history: shallow
     run:
       - bundle: ~
-      - bundle exec rake build
+      - bundle exec rake
     # publish:
     #   package:
     #     repository_name: gems
