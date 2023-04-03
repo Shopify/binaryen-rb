@@ -100,7 +100,7 @@ end
 
 task :install do
   local_platform = RUBY_PLATFORM.gsub(/darwin\d+$/, "darwin")
-
+  FileUtils.rm_rf("tmp/gem_home")
   sh "gem install pkg/binaryen-#{Binaryen::VERSION}-#{local_platform}.gem --install-dir tmp/gem_home --no-document"
 end
 

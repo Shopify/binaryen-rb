@@ -11,10 +11,10 @@ steps:
     run:
       - bundle: ~
       - bundle exec rake
-    # publish:
-    #   package:
-    #     repository_name: gems
-    #     package_type: ruby
-    #     artifacts:
-    #       - path: pkg
-    #         patterns: ["*.gem"]
+    publish:
+      package:
+        repository_name: gems
+        package_type: ruby
+        artifacts:
+          - path: pkg
+            patterns: ["*.gem"]
