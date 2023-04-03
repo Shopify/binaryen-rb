@@ -3,13 +3,13 @@
 require_relative "lib/binaryen/version"
 require "rake"
 require "rake/testtask"
+require "rubocop/rake_task"
 require "fileutils"
 require "tempfile"
 require "open-uri"
 require "digest"
 
-BINARYEN_VERSION_NUMBER = Binaryen::VERSION.gsub(".", "").to_i
-BINARYEN_VERSION = "version_112"
+BINARYEN_VERSION = Binaryen::BINARYEN_VERSION
 GITHUB_REPO = "https://github.com/WebAssembly/binaryen/releases/download/#{BINARYEN_VERSION}"
 TMP_DIR = "tmp"
 DOWNLOAD_DIR = File.join("tmp", "binaryen-#{BINARYEN_VERSION}")
@@ -98,17 +98,19 @@ task "build:x86_64-darwin" do
   build_gem_for_platform("x86_64-macos")
 end
 
+task build: ["build:arm64-darwin", "build:x86_64-linux", "build:x86_64-darwin"]
+
 task :install do
   local_platform = RUBY_PLATFORM.gsub(/darwin\d+$/, "darwin")
   FileUtils.rm_rf("tmp/gem_home")
   sh "gem install pkg/binaryen-#{Binaryen::VERSION}-#{local_platform}.gem --install-dir tmp/gem_home --no-document"
 end
 
-task build: ["build:arm64-darwin", "build:x86_64-linux", "build:x86_64-darwin"]
-
 Rake::TestTask.new do |t|
   t.libs = FileList["test", "tmp/gem_home/gems/*/lib"]
   t.test_files = FileList["test/**/*_test.rb"]
 end
 
-task default: [:build, :install, :test]
+RuboCop::RakeTask.new
+
+task default: [:build, :install, :test, :rubocop]

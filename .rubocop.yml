@@ -2,6 +2,7 @@ inherit_gem:
   rubocop-shopify: rubocop.yml
 
 AllCops:
+  SuggestExtensions: false
   NewCops: enable
   Exclude:
     - tmp/**/*.rb

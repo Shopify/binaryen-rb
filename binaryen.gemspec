@@ -4,7 +4,7 @@ require_relative "lib/binaryen/version"
 
 Gem::Specification.new do |spec|
   spec.name = "binaryen"
-  spec.version = Binaryen::VERSION.dup + ".pre.1"
+  spec.version = Binaryen::VERSION
   spec.authors = ["Shopify Inc."]
   spec.email = ["gems@shopify.com"]
   spec.summary = "Vendors binaryen libraries, headers, and executables for use in Ruby"
