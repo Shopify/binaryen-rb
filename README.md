@@ -1,5 +1,8 @@
 # `binaryen-rb`
 
+[![Latest version of 'binaryen' @ Cloudsmith](https://api-prd.cloudsmith.io/v1/badges/version/shopify/gems/ruby/binaryen/latest/a=arm64-darwin;xp=arm64-darwin/?render=true&show_latest=true&badge_token=gAAAAABkK04DV1HW1IJsownx5q-cChJ6cFdRDg24g8RHpDMUkX3k_bPW1hcwcldoJ-m2uO3wwFPO7E9Z1D8xu1l-PHghoV7q8Pj0jYHuZ5ce3iHVMVgdMvE%3D)](https://cloudsmith.io/~shopify/repos/gems/packages/detail/ruby/binaryen/latest/a=arm64-darwin;xp=arm64-darwin/)
+[![Build status](https://badge.buildkite.com/add062a055afaa789b95b55688346674dfcaaea0c962470740.svg)](https://buildkite.com/shopify/binaryen-rb)
+
 A small gem which vendors [`binaryen` releases][binaryen] for common Ruby platforms.
 
 |       |                                                                      |
@@ -9,7 +12,13 @@ A small gem which vendors [`binaryen` releases][binaryen] for common Ruby platfo
 
 ## How to install this library
 
-Add `gem "binaryen", source: "https://pkgs.shopify.io/basic/gems/ruby"` to your Gemfile.
+Add the following to your Gemfile:
+
+```ruby
+gem "binaryen", source: "https://pkgs.shopify.io/basic/gems/ruby"
+```
+
+Then run `bundle install`.
 
 ## How to use this library
 
