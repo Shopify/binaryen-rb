@@ -57,6 +57,10 @@ def build_gem_for_platform(platform)
 
   FileUtils.mkdir_p(File.join(staging_path, "vendor"))
   sh("tar -xzf #{tarball} --strip-components=1 -C #{staging_path}/vendor")
+  case RUBY_PLATFORM
+  when /darwin/
+    FileUtils.cp_r(File.join(staging_path, "vendor"), "./vendor")
+  end
   FileUtils.cp_r("lib", staging_path)
   FileUtils.cp("binaryen.gemspec", staging_path)
 
