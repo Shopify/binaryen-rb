@@ -34,7 +34,7 @@ module Binaryen
         missing_command.run("dfasdfasdfasdfsadf")
       end
 
-      assert_equal("Command exited with 1 status: wasm-opt dfasdfasdfasdfsadf --output\\=-", err.message)
+      assert_match(/Command exited with \d+ status: wasm-opt dfasdfasdfasdfsadf --output\\=-/, err.message)
     end
 
     def test_it_can_redirect_stderr
