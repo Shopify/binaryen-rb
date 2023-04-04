@@ -5,6 +5,14 @@ require "shellwords"
 require "timeout"
 
 module Binaryen
+  # Wrapper around a binaryen executable command with a timeout and streaming IO.
+  #
+  # @example Running wasm-opt
+  #
+  #   ```ruby
+  #   command = Binaryen::Command.new("wasm-opt", timeout: 10)
+  #   optimized_wasm = command.run("-O4", stdin: "(module)")
+  #   ```
   class Command
     DEFAULT_ARGS_FOR_COMMAND = {
       "wasm-opt" => ["--output=-"],

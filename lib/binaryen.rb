@@ -3,6 +3,7 @@
 require "binaryen/version"
 require "binaryen/error"
 require "binaryen/command"
+
 module Binaryen
   class Error < StandardError; end
 
