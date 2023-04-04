@@ -11,7 +11,7 @@ module Binaryen
     }.freeze
 
     def initialize(cmd, timeout: 10, ignore_missing: false)
-      @cmd = command_path(cmd) || ignore_missing ? cmd : raise(ArgumentError, "Command not found: #{cmd}")
+      @cmd = command_path(cmd, ignore_missing) || raise(ArgumentError, "command not found: #{cmd}")
       @timeout = timeout
       @default_args = DEFAULT_ARGS_FOR_COMMAND.fetch(cmd, [])
     end
@@ -29,7 +29,7 @@ module Binaryen
         pid = nil
 
         if $CHILD_STATUS.exitstatus != 0
-          raise Binaryen::NonZeroExitStatus, "Command exited with #{$CHILD_STATUS.exitstatus} status: #{command}"
+          raise Binaryen::NonZeroExitStatus, "command exited with status #{$CHILD_STATUS.exitstatus}: #{command}"
         end
 
         output
@@ -42,8 +42,8 @@ module Binaryen
       Shellwords.join([@cmd] + arguments + @default_args)
     end
 
-    def command_path(cmd)
-      Dir[File.join(Binaryen.bindir, cmd)].first
+    def command_path(cmd, ignore_missing)
+      Dir[File.join(Binaryen.bindir, cmd)].first || (ignore_missing && cmd)
     end
   end
 end

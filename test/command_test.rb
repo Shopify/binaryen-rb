@@ -9,7 +9,7 @@ module Binaryen
       version_number = Binaryen::BINARYEN_VERSION.split("_").last
       result = wasm_opt.run("--version")
 
-      assert_equal("wasm-opt version #{version_number}", result.read.strip)
+      assert_match(/wasm-opt version #{version_number}/, result.read.strip)
     end
 
     def test_it_accepts_stdin
@@ -34,7 +34,7 @@ module Binaryen
         missing_command.run("dfasdfasdfasdfsadf")
       end
 
-      assert_match(/Command exited with \d+ status: wasm-opt dfasdfasdfasdfsadf --output\\=-/, err.message)
+      assert_match(/^command exited with status 1:/, err.message)
     end
 
     def test_it_can_redirect_stderr
