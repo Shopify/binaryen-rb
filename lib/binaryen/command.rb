@@ -11,7 +11,7 @@ module Binaryen
   #
   #   ```ruby
   #   command = Binaryen::Command.new("wasm-opt", timeout: 10)
-  #   optimized_wasm = command.run("-O4", stdin: "(module)")
+  #   optimized_wasm = command.run("-O4", stdin: "(module)").read
   #   ```
   class Command
     DEFAULT_ARGS_FOR_COMMAND = {
