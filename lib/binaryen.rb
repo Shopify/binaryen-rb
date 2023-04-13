@@ -1,8 +1,12 @@
 # frozen_string_literal: true
 
 require "binaryen/version"
+require "binaryen/error"
+require "binaryen/command"
 
 module Binaryen
+  class Error < StandardError; end
+
   class << self
     # Path to the vendored binaryen files
     def vendordir
