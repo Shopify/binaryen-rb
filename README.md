@@ -10,7 +10,7 @@ A small gem which vendors [`binaryen` releases][binaryen] for common Ruby platfo
 | Owner | [@Shopify/liquid-perf](https://github.com/orgs/Shopify/teams/liquid-perf)    |
 | Help  | [#liquid-perf](https://shopify.slack.com/archives/C03AE40AL1W) |
 
-## How to install this library
+## Installation
 
 Add the following to your Gemfile:
 
@@ -18,9 +18,15 @@ Add the following to your Gemfile:
 gem "binaryen", source: "https://pkgs.shopify.io/basic/gems/ruby"
 ```
 
-Then run `bundle install`.
+Then run `bundle install`. If you run into installation issues, you may need to
+explicitly add Ruby platforms to your lockfile:
 
-## How to use this library
+```sh
+$ bundle lock --add-platform x86_64-linux
+$ bundle lock --add-platform arm64-darwin
+```
+
+## Usage
 
 This library only contains vendored binaries, and minimal Ruby code. It is
 intended to be used by other gems which depend on `binaryen`.
@@ -28,7 +34,9 @@ intended to be used by other gems which depend on `binaryen`.
 ```ruby
 require "binaryen"
 
-system(Binaryen.bindir + "/wasm-opt", "--version") #=> wasm-opt version 112 (version_112)
+wasm_opt = Binaryen::Command.new("wasm-opt", timeout: 2)
+result = wasm_opt.run("-O4", stdin: "(module)")
+assert_equal("asm\x01", result.read.strip)
 ```
 
 ## Contributing

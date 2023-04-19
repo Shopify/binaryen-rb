@@ -14,4 +14,5 @@ Gem::Specification.new do |spec|
   spec.licenses = ["Apache-2.0"] # Same as binaryen
   spec.homepage = "https://github.com/Shopify/binaryen-rb"
   spec.required_ruby_version = ">= 2.7.0"
+  # __INSERT_RUBY_PLATFORM_HERE__
 end

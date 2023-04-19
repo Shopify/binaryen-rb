@@ -15,6 +15,7 @@ TMP_DIR = "tmp"
 DOWNLOAD_DIR = File.join("tmp", "binaryen-#{BINARYEN_VERSION}")
 STAGING_DIR = "tmp/staging"
 PKG_DIR = "pkg"
+GEMSPEC_CONTENTS = File.read("binaryen.gemspec")
 
 def download_and_verify_platform_files(platform, file, sha256_file)
   folder = File.join(TMP_DIR, file.split("-")[0..1].join("-"))
@@ -62,14 +63,20 @@ def build_gem_for_platform(platform)
     FileUtils.cp_r(File.join(staging_path, "vendor"), "./vendor")
   end
   FileUtils.cp_r("lib", staging_path)
-  FileUtils.cp("binaryen.gemspec", staging_path)
+
+  platform_gemspec_contents = GEMSPEC_CONTENTS.gsub(
+    /# __INSERT_RUBY_PLATFORM_HERE__/,
+    "spec.platform = Gem::Platform.new(#{ruby_platform.inspect})",
+  )
+
+  File.write(File.join(staging_path, "binaryen.gemspec"), platform_gemspec_contents)
 
   outpath = File.expand_path(File.join(PKG_DIR, "binaryen-#{Binaryen::VERSION}-#{ruby_platform}.gem"))
 
   # chdir is not thread-safe, so we need to fork
   pid = fork do
     Dir.chdir(staging_path) do
-      sh("gem build binaryen.gemspec --platform #{ruby_platform} --output #{outpath}")
+      sh("gem build binaryen.gemspec --output #{outpath}")
     end
   end
 
