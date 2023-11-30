@@ -7,6 +7,6 @@ up:
   - bundler
 
 commands:
-  build:
-    desc: "Build the gems"
-    run: rake build
+  test:
+    desc: "Run the tests"
+    run: bundle exec rake

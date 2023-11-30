@@ -2,6 +2,11 @@
 
 source "https://rubygems.org"
 
-gem "rake", require: false
-gem "rubocop-shopify", require: false
-gem "minitest", require: false
+gemspec
+
+gem "rake"
+gem "rubocop-shopify"
+
+group :test do
+  gem "minitest"
+end

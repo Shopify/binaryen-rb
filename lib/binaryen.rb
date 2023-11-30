@@ -10,7 +10,14 @@ module Binaryen
   class << self
     # Path to the vendored binaryen files
     def vendordir
-      @vendordir ||= File.expand_path(File.join(File.dirname(__FILE__), "..", "vendor"))
+      @vendordir ||= begin
+        cpu = RbConfig::CONFIG["host_cpu"]
+        os = RbConfig::CONFIG["host_os"]
+        if os.include?("darwin")
+          os = "darwin"
+        end
+        File.expand_path(File.join(File.dirname(__FILE__), "..", "vendor", "#{cpu}-#{os}"))
+      end
     end
 
     # Path to the vendored binaryen binary executables
