@@ -5,26 +5,20 @@
 
 A small gem which vendors [`binaryen` releases][binaryen] for common Ruby platforms.
 
-|       |                                                                      |
-| ----- | -------------------------------------------------------------------- |
-| Owner | [@Shopify/liquid-perf](https://github.com/orgs/Shopify/teams/liquid-perf)    |
-| Help  | [#liquid-perf](https://shopify.slack.com/archives/C03AE40AL1W) |
+|       |                                                                           |
+| ----- | ------------------------------------------------------------------------- |
+| Owner | [@Shopify/liquid-perf](https://github.com/orgs/Shopify/teams/liquid-perf) |
+| Help  | [#liquid-perf](https://shopify.slack.com/archives/C03AE40AL1W)            |
 
 ## Installation
 
 Add the following to your Gemfile:
 
 ```ruby
-gem "binaryen", source: "https://pkgs.shopify.io/basic/gems/ruby"
+gem "binaryen"
 ```
 
-Then run `bundle install`. If you run into installation issues, you may need to
-explicitly add Ruby platforms to your lockfile:
-
-```sh
-$ bundle lock --add-platform x86_64-linux
-$ bundle lock --add-platform arm64-darwin
-```
+Then run `bundle install`.
 
 ## Usage
 
@@ -49,7 +43,7 @@ Read and follow the guidelines in [CONTRIBUTING.md](https://github.com/Shopify/b
 
 ## Releases
 
-This gem is published to [Cloudsmith](https://cloudsmith.io/~shopify/repos/gems/packages).
+This gem is published to [Rubygems](https://rubygems.org/gems/binaryen).
 
 The procedure to publish a new release version is as follows:
 

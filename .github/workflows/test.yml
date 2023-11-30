@@ -1,0 +1,26 @@
+---
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        ruby: ["2.7", "ruby-head"]
+        os: ["ubuntu-latest", "macos-latest"]
+    name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: bundle exec rake test
+      - run: bundle exec rake lint
+      - run: bundle exec rake examples

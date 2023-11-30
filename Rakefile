@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "lib/binaryen/version"
+require "bundler/setup"
 require "rake"
 require "rake/testtask"
 require "rubocop/rake_task"
@@ -11,10 +12,10 @@ require "digest"
 
 BINARYEN_VERSION = Binaryen::BINARYEN_VERSION
 GITHUB_REPO = "https://github.com/WebAssembly/binaryen/releases/download/#{BINARYEN_VERSION}"
-TMP_DIR = "tmp"
+TMP_DIR = File.join(__dir__, "tmp")
+VENDOR_DIR = File.join(__dir__, "vendor")
+PKG_DIR = File.join(__dir__, "pkg")
 DOWNLOAD_DIR = File.join("tmp", "binaryen-#{BINARYEN_VERSION}")
-STAGING_DIR = "tmp/staging"
-PKG_DIR = "pkg"
 GEMSPEC_CONTENTS = File.read("binaryen.gemspec")
 
 def download_and_verify_platform_files(platform, file, sha256_file)
@@ -44,93 +45,114 @@ def download_and_verify_platform_files(platform, file, sha256_file)
   end
 end
 
-def build_gem_for_platform(platform)
+def unpack_artifacts_for_platform(platform)
   ruby_platform = platform.gsub("macos", "darwin")
   file_name = "binaryen-#{BINARYEN_VERSION}-#{platform}.tar.gz"
-  staging_path = File.join(STAGING_DIR, ruby_platform)
   tarball = File.join(DOWNLOAD_DIR, file_name)
 
-  puts "Building gem for #{ruby_platform}"
-
-  FileUtils.mkdir_p(staging_path)
-  FileUtils.rm_f(File.join("pkg", file_name))
+  FileUtils.mkdir_p(VENDOR_DIR)
   FileUtils.mkdir_p(PKG_DIR)
 
-  FileUtils.mkdir_p(File.join(staging_path, "vendor"))
-  sh("tar -xzf #{tarball} --strip-components=1 -C #{staging_path}/vendor")
-  case RUBY_PLATFORM
-  when /darwin/
-    FileUtils.cp_r(File.join(staging_path, "vendor"), "./vendor")
-  end
-  FileUtils.cp_r("lib", staging_path)
+  local_vendor_dir = File.join(VENDOR_DIR, ruby_platform)
 
-  platform_gemspec_contents = GEMSPEC_CONTENTS.gsub(
-    /# __INSERT_RUBY_PLATFORM_HERE__/,
-    "spec.platform = Gem::Platform.new(#{ruby_platform.inspect})",
-  )
+  return if File.exist?(local_vendor_dir)
 
-  File.write(File.join(staging_path, "binaryen.gemspec"), platform_gemspec_contents)
-
-  outpath = File.expand_path(File.join(PKG_DIR, "binaryen-#{Binaryen::VERSION}-#{ruby_platform}.gem"))
-
-  # chdir is not thread-safe, so we need to fork
-  pid = fork do
-    Dir.chdir(staging_path) do
-      sh("gem build binaryen.gemspec --output #{outpath}")
-    end
-  end
-
-  Process.wait(pid)
+  puts "Unpacking artifacts for #{ruby_platform}"
+  FileUtils.mkdir_p(local_vendor_dir)
+  sh("tar -xzf #{tarball} --strip-components=1 -C #{local_vendor_dir}")
+  FileUtils.rm("#{local_vendor_dir}/bin/binaryen-unittests")
 end
 
 task :clean do
+  rm_rf VENDOR_DIR
   rm_rf TMP_DIR
   rm_rf PKG_DIR
 end
 
-task "build:arm64-darwin" do
+desc "Fetches the binaryen artifacts for the arm64-darwin platform"
+task "fetch:arm64-darwin" do
   download_and_verify_platform_files(
     "arm64-macos",
     "binaryen-#{BINARYEN_VERSION}-arm64-macos.tar.gz",
     "binaryen-#{BINARYEN_VERSION}-arm64-macos.tar.gz.sha256",
   )
 
-  build_gem_for_platform("arm64-macos")
+  unpack_artifacts_for_platform("arm64-macos")
 end
 
-task "build:x86_64-linux" do
+desc "Fetches the binaryen artifacts for the x86_64-linux platform"
+task "fetch:x86_64-linux" do
   download_and_verify_platform_files(
     "x86_64-linux",
     "binaryen-#{BINARYEN_VERSION}-x86_64-linux.tar.gz",
     "binaryen-#{BINARYEN_VERSION}-x86_64-linux.tar.gz.sha256",
   )
 
-  build_gem_for_platform("x86_64-linux")
+  unpack_artifacts_for_platform("x86_64-linux")
 end
 
-task "build:x86_64-darwin" do
+desc "Fetches the binaryen artifacts for the x86_64-darwin platform"
+task "fetch:x86_64-darwin" do
   download_and_verify_platform_files(
     "x86_64-macos",
     "binaryen-#{BINARYEN_VERSION}-x86_64-macos.tar.gz",
     "binaryen-#{BINARYEN_VERSION}-x86_64-macos.tar.gz.sha256",
   )
 
-  build_gem_for_platform("x86_64-macos")
+  unpack_artifacts_for_platform("x86_64-macos")
 end
 
-multitask build: ["build:arm64-darwin", "build:x86_64-linux", "build:x86_64-darwin"]
+desc "Fetches the binaryen artifacts for all platforms"
+multitask fetch: ["fetch:arm64-darwin", "fetch:x86_64-linux", "fetch:x86_64-darwin"]
 
-task :install do
-  local_platform = RUBY_PLATFORM.gsub(/darwin\d+$/, "darwin")
-  FileUtils.rm_rf("tmp/gem_home")
-  sh "gem install pkg/binaryen-#{Binaryen::VERSION}-#{local_platform}.gem --install-dir tmp/gem_home --no-document"
+desc "Builds the binaryen gem"
+task build: :fetch do
+  outfile = File.join(PKG_DIR, "binaryen-#{Binaryen::VERSION}.gem")
+
+  doit = proc do
+    sh("gem build -V binaryen.gemspec --output #{outfile} --strict")
+    puts "Built #{outfile}"
+  end
+
+  defined?(Bundler) ? Bundler.with_unbundled_env(&doit) : doit.call
+end
+
+desc "Installs the binaryen gem"
+task install: :build do
+  doit = proc do
+    sh("gem install --local #{File.join(PKG_DIR, "binaryen-#{Binaryen::VERSION}.gem")}")
+  end
+
+  defined?(Bundler) ? Bundler.with_unbundled_env(&doit) : doit.call
 end
 
 Rake::TestTask.new do |t|
-  t.libs = FileList["test", "tmp/gem_home/gems/*/lib"]
+  t.libs = FileList["test"]
   t.test_files = FileList["test/**/*_test.rb"]
 end
 
-RuboCop::RakeTask.new
+RuboCop::RakeTask.new(:lint)
 
-task default: [:clean, :build, :install, :test, :rubocop]
+desc "Runs the examples"
+task examples: :install do
+  success = true
+
+  Bundler.with_unbundled_env do
+    Dir["examples/*.rb"].each do |example|
+      puts "👉 Running #{example}"
+
+      if system(RbConfig.ruby, example)
+        puts "✅ #{example} ran successfully"
+      else
+        puts "❌ #{example} failed"
+        success &&= false
+      end
+    end
+  end
+
+  exit 1 unless success
+end
+
+task test: :fetch
+
+task default: [:test, :lint]

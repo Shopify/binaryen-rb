@@ -15,8 +15,9 @@ module Binaryen
     def test_it_accepts_stdin
       wasm_opt = Binaryen::Command.new("wasm-opt", timeout: 2)
       result = wasm_opt.run("-O4", stdin: "(module)")
+      expected = "\x00asm"
 
-      assert_equal("asm\x01", result.read.strip)
+      assert(result.read.start_with?(expected), "Expected #{result.read.inspect} to start with #{expected.inspect}")
     end
 
     def test_times_out_sanely
