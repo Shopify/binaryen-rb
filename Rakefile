@@ -153,6 +153,17 @@ task examples: :install do
   exit 1 unless success
 end
 
+desc "Releases the binaryen gem"
+task release: :build do
+  abort "❌ Must be on shipit" unless ENV["SHIPIT"]
+
+  doit = proc do
+    sh("gem push #{File.join(PKG_DIR, "binaryen-#{Binaryen::VERSION}.gem")}")
+  end
+
+  defined?(Bundler) ? Bundler.with_unbundled_env(&doit) : doit.call
+end
+
 task test: :fetch
 
 task default: [:test, :lint]
