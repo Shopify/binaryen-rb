@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.authors = ["Shopify Inc."]
   spec.email = ["gems@shopify.com"]
   spec.summary = "Vendors binaryen libraries, headers, and executables for use in Ruby"
-  spec.metadata["allowed_push_host"] = "https://pkgs.shopify.io"
+  spec.metadata["allowed_push_host"] = "https://rubygems.org"
   spec.files = Dir["lib/**/*.rb", "vendor/**/*", "LICENSE", "README.md", "extconf.rb"]
   spec.require_paths = ["lib"]
   spec.licenses = ["Apache-2.0"] # Same as binaryen
