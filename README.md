@@ -1,14 +1,29 @@
 # `binaryen-rb`
 
-[![Latest version of 'binaryen' @ Cloudsmith](https://api-prd.cloudsmith.io/v1/badges/version/shopify/gems/ruby/binaryen/latest/a=arm64-darwin;xp=arm64-darwin/?render=true&show_latest=true&badge_token=gAAAAABkK04DV1HW1IJsownx5q-cChJ6cFdRDg24g8RHpDMUkX3k_bPW1hcwcldoJ-m2uO3wwFPO7E9Z1D8xu1l-PHghoV7q8Pj0jYHuZ5ce3iHVMVgdMvE%3D)](https://cloudsmith.io/~shopify/repos/gems/packages/detail/ruby/binaryen/latest/a=arm64-darwin;xp=arm64-darwin/)
-[![Build status](https://badge.buildkite.com/add062a055afaa789b95b55688346674dfcaaea0c962470740.svg)](https://buildkite.com/shopify/binaryen-rb)
+[![Gem Version](https://badge.fury.io/rb/binaryen.svg)](https://badge.fury.io/rb/binaryen) | [![CI](https://github.com/Shopify/binaryen-rb/actions/workflows/test.yml/badge.svg)](https://github.com/Shopify/binaryen-rb/actions/workflows/test.yml)
 
-A small gem which vendors [`binaryen` releases][binaryen] for common Ruby platforms.
+A small gem which vendors [`binaryen` releases][binaryen] for easy use from Ruby. It includes the following executables:
 
-|       |                                                                           |
-| ----- | ------------------------------------------------------------------------- |
-| Owner | [@Shopify/liquid-perf](https://github.com/orgs/Shopify/teams/liquid-perf) |
-| Help  | [#liquid-perf](https://shopify.slack.com/archives/C03AE40AL1W)            |
+Here's a version of the table with the descriptions shortened to a single sentence:
+
+| exe                        | description                                                                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `wasm-split`               | Splits a module into a primary and a secondary module, or instruments a module to gather a profile for future splitting. |
+| `wasm-ctor-eval`           | Executes code at compile time.                                                                                           |
+| `wasm-merge`               | Merges multiple wasm files into one.                                                                                     |
+| `wasm-reduce`              | Reduces a wasm file to a smaller one with the same behavior on a given command.                                          |
+| `wasm-metadce`             | Performs dead code elimination (DCE) on a larger space that the wasm module is just a part of.                           |
+| `wasm-shell`               | Executes .wast files.                                                                                                    |
+| `wasm-fuzz-types`          | Fuzzes type construction, canonicalization, and operations.                                                              |
+| `wasm-fuzz-lattices`       | Fuzzes lattices for reflexivity, transitivity, and anti-symmetry, and transfer functions for monotonicity.               |
+| `wasm-emscripten-finalize` | Performs Emscripten-specific transforms on .wasm files.                                                                  |
+| `wasm-as`                  | Assembles a .wat (WebAssembly text format) into a .wasm (WebAssembly binary format).                                     |
+| `wasm-opt`                 | Reads, writes, and optimizes files.                                                                                      |
+| `wasm-dis`                 | Un-assembles a .wasm (WebAssembly binary format) into a .wat (WebAssembly text format).                                  |
+| `wasm2js`                  | Transforms .wasm/.wat files to asm.js.                                                                                   |
+
+Please note that these are simplified descriptions and may not fully capture the functionality of each command. For a complete understanding, refer to the original descriptions or the respective command's documentation.
+It also include `libinaryen` and it's corresponding header files, if you need them.
 
 ## Installation
 
@@ -22,16 +37,12 @@ Then run `bundle install`.
 
 ## Usage
 
-This library only contains vendored binaries, and minimal Ruby code. It is
-intended to be used by other gems which depend on `binaryen`.
+This library only contains vendored executables, and minimal Ruby code to invoke
+them. You can see some examples of how to use this gem in the
+[`./examples`](./examples) directory.
 
-```ruby
-require "binaryen"
-
-wasm_opt = Binaryen::Command.new("wasm-opt", timeout: 2)
-result = wasm_opt.run("-O4", stdin: "(module)")
-assert_equal("asm\x01", result.read.strip)
-```
+- [`./examples/wasm_opt.rb`](./examples/wasm_opt.rb) - Optimize a WebAssembly module
+- [`./examples/wasm_strip.rb`](./examples/wasm_strip.rb) - Strip a WebAssembly module
 
 ## Contributing
 
@@ -39,11 +50,11 @@ Bug reports and pull requests are welcome on GitHub at
 https://github.com/Shopify/binaryen-rb. Signing Shopify's CLA is a mandatory
 when opening, you will be prompted to do so by a Github action.
 
-Read and follow the guidelines in [CONTRIBUTING.md](https://github.com/Shopify/binaryen-rb/blob/main/CONTRIBUTING.md).
+Read and follow the guidelines in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Releases
 
-This gem is published to [Rubygems](https://rubygems.org/gems/binaryen).
+This gem is published to [Rubygems][rubygems].
 
 The procedure to publish a new release version is as follows:
 
@@ -51,8 +62,12 @@ The procedure to publish a new release version is as follows:
 * Run bundle install to bump the version of the gem in `Gemfile.lock`
 * Open a pull request, review, and merge
 * Review commits since the last release to identify user-facing changes that should be included in the release notes
-* [Create a release on GitHub](https://github.com/Shopify/binaryen-rb/releases/new) with a version number that matches `lib/binaryen/version.rb`. More on [creating releases](https://help.github.com/articles/creating-releases).
-* [Deploy via Shipit](https://shipit.shopify.io/shopify/binaryen-rb/cloudsmith) and see your [latest version on Cloudsmith](https://cloudsmith.io/~shopify/repos/gems/packages/detail/ruby/binaryen-rb/latest)
+* [Create a relase on GitHub][gh-release] with a version number that matches `lib/binaryen/version.rb`. Pick the `Create new tag` option. More on [creating releases][gh-release-notes]
+* [Deploy via Shipit][shipit] and see your [latest version on Rubygems][rubygems]
 
 
 [binaryen]: https://github.com/WebAssembly/binaryen/releases
+[rubygems]: https://rubygems.org/gems/binaryen
+[shipit]: https://shipit.shopify.io/shopify/binaryen-rb/release
+[gh-release]: https://github.com/Shopify/binaryen-rb/releases/new
+[gh-release-notes]: https://help.github.com/articles/creating-releases
