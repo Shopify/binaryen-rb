@@ -9,7 +9,7 @@ module Binaryen
       version_number = Binaryen::BINARYEN_VERSION.split("_").last
       result = wasm_opt.run("--version")
 
-      assert_match(/wasm-opt version #{version_number}/, result.read.strip)
+      assert_match(/wasm-opt version #{version_number}/, result.strip)
     end
 
     def test_it_accepts_stdin
@@ -17,15 +17,20 @@ module Binaryen
       result = wasm_opt.run("-O4", stdin: "(module)")
       expected = "\x00asm"
 
-      assert(result.read.start_with?(expected), "Expected #{result.read.inspect} to start with #{expected.inspect}")
+      assert(result.start_with?(expected), "Expected #{result.inspect} to start with #{expected.inspect}")
     end
 
-    def test_times_out_sanely
-      sleep_command = Binaryen::Command.new("sleep", timeout: 0.1, ignore_missing: true)
+    def test_times_out_sanely_on_no_output
+      assert_proper_timeout_for_command("sleep", "5")
+    end
 
-      assert_raises(Timeout::Error) do
-        sleep_command.run("5")
-      end
+    def test_times_out_sanely_on_reads
+      assert_proper_timeout_for_command("yes")
+    end
+
+    def test_times_out_sanely_on_blocking_writes
+      stdin = "y" * (64 * 1024 * 1024)
+      assert_proper_timeout_for_command("ruby", "-e", "while STDIN.getc; sleep 0.01; end", stdin: stdin)
     end
 
     def test_it_raises_an_error_with_a_reasonable_message_if_the_command_is_not_found
@@ -35,7 +40,7 @@ module Binaryen
         missing_command.run("dfasdfasdfasdfsadf")
       end
 
-      assert_match(/^command exited with status 1:/, err.message)
+      assert_match(/^command exited with status 1/, err.message)
     end
 
     def test_it_can_redirect_stderr
@@ -51,6 +56,31 @@ module Binaryen
     ensure
       stderr.close
       stderr.unlink
+    end
+
+    private
+
+    def assert_proper_timeout_for_command(command, *args, stdin: nil)
+      attempts = 10
+      timeout = 0.1
+      error_margin = timeout * 1.25
+
+      begin
+        command_instance = Binaryen::Command.new(command, timeout: timeout, ignore_missing: true)
+        start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        assert_raises(Timeout::Error) do
+          command_instance.run(*args, stdin: stdin)
+        end
+        end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        duration = end_time - start_time
+
+        assert(duration >= timeout, "should not time out early")
+        assert(duration < error_margin, "timeout took too long")
+      rescue Minitest::Assertion
+        attempts -= 1
+        retry if attempts > 0
+        raise
+      end
     end
   end
 end

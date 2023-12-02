@@ -19,5 +19,4 @@ WASM
 
 wasm_split = Binaryen::Command.new("wasm-split", timeout: 2)
 result = wasm_split.run("-", stdin: wasm_code, stderr: $stderr)
-puts(result.read)
-# exit(result.read.start_with?("\x00asm"))
+puts(result)
