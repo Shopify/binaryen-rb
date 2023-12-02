@@ -42,7 +42,7 @@ them. You can see some examples of how to use this gem in the
 [`./examples`](./examples) directory.
 
 - [`./examples/wasm_opt.rb`](./examples/wasm_opt.rb) - Optimize a WebAssembly module
-- [`./examples/wasm_strip.rb`](./examples/wasm_strip.rb) - Strip a WebAssembly module
+- [`./examples/wasm_split.rb`](./examples/wasm_split.rb) - Strip a WebAssembly module
 
 ## Contributing
 

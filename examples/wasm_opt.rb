@@ -19,4 +19,4 @@ wasm_code = <<~WASM
 WASM
 
 wasm_opt = Binaryen::Command.new("wasm-opt", timeout: 2)
-puts(wasm_opt.run("--emit-text", "-O4", "--debug", stdin: wasm_code, stderr: $stderr).read)
+puts(wasm_opt.run("--emit-text", "-O4", "--debug", stdin: wasm_code, stderr: $stderr))
