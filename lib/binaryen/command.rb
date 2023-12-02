@@ -35,13 +35,9 @@ module Binaryen
         start_time, remaining_timeout = write_to_pipe(pipe, stdin, start_time, remaining_timeout)
       end
 
-      output = read_from_pipe(pipe, start_time, remaining_timeout)
+      output, remaining_timeout = read_from_pipe(pipe, start_time, remaining_timeout)
 
-      _, status = Process.wait2(pid)
-
-      if status.exitstatus != 0
-        raise Binaryen::NonZeroExitStatus, "command exited with status #{status.exitstatus}: #{command}"
-      end
+      wait_or_kill(pid, start_time, remaining_timeout)
 
       output
     end
@@ -88,7 +84,7 @@ module Binaryen
         end
       end
 
-      output
+      [output, remaining_timeout]
     end
 
     def update_timeout(start_time, remaining_timeout)
@@ -100,6 +96,25 @@ module Binaryen
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
       [start_time, remaining_timeout]
+    end
+
+    def wait_or_kill(pid, start_time, remaining_timeout)
+      while remaining_timeout > 0
+        start_time, remaining_timeout = update_timeout(start_time, remaining_timeout)
+
+        if (_, status = Process.wait2(pid, Process::WNOHANG))
+          if status.exitstatus != 0
+            raise Binaryen::NonZeroExitStatus, "command exited with status #{status.exitstatus}"
+          end
+
+          return true
+        else
+          sleep(0.1)
+        end
+      end
+
+      Process.kill("KILL", pid)
+      raise Timeout::Error, "timed out waiting on process"
     end
 
     def build_command(*arguments)

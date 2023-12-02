@@ -97,7 +97,7 @@ module Binaryen
         missing_command.run("dfasdfasdfasdfsadf")
       end
 
-      assert_match(/^command exited with status 1:/, err.message)
+      assert_match(/^command exited with status 1/, err.message)
     end
 
     def test_it_can_redirect_stderr
