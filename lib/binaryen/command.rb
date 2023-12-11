@@ -18,6 +18,23 @@ module Binaryen
       "wasm-opt" => ["--output=-"],
     }.freeze
 
+    class TimeoutChecker
+      def initialize(end_time:, pid:)
+        @end_time = end_time
+        @pid = pid
+      end
+
+      def check!
+        now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        if now >= @end_time
+          Process.kill("KILL", @pid)
+          raise Timeout::Error, "Command timed out"
+        end
+        remaining_time = @end_time - now
+        remaining_time
+      end
+    end
+
     def initialize(cmd, timeout: 10, ignore_missing: false)
       @cmd = command_path(cmd, ignore_missing) || raise(ArgumentError, "command not found: #{cmd}")
       @timeout = timeout
@@ -25,58 +42,49 @@ module Binaryen
     end
 
     def run(*arguments, stdin: nil, stderr: File::NULL)
+      end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) + @timeout
       command = build_command(*arguments)
       pipe = IO.popen(command, "rb+", err: stderr)
       pid = pipe.pid
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      remaining_timeout = @timeout
+      timeout_checker = TimeoutChecker.new(end_time: end_time, pid: pid)
 
-      if stdin
-        start_time, remaining_timeout = write_to_pipe(pipe, stdin, start_time, remaining_timeout)
-      end
-
-      output, remaining_timeout = read_from_pipe(pipe, start_time, remaining_timeout)
-
-      wait_or_kill(pid, start_time, remaining_timeout)
+      write_to_pipe(pipe, stdin, timeout_checker) if stdin
+      output = read_from_pipe(pipe, timeout_checker)
+      wait_or_kill(pid, timeout_checker)
 
       output
     end
 
     private
 
-    def write_to_pipe(pipe, stdin, start_time, remaining_timeout)
+    def write_to_pipe(pipe, stdin, timeout_checker)
       offset = 0
       length = stdin.bytesize
 
       while offset < length
-        start_time, remaining_timeout = update_timeout(start_time, remaining_timeout)
-        if IO.select(nil, [pipe], nil, remaining_timeout)
+        remaining_time = timeout_checker.check!
+
+        if IO.select(nil, [pipe], nil, remaining_time)
           written = pipe.write_nonblock(stdin.byteslice(offset, length), exception: false)
-          case written
-          when Integer
-            offset += written
-          when :wait_writable
-            puts "wait"
-            # If the pipe is not ready for writing, retry
-          end
+          offset += written if written.is_a?(Integer)
         else
           raise Timeout::Error, "Command timed out"
         end
       end
 
       pipe.close_write
-      [start_time, remaining_timeout]
     end
 
-    def read_from_pipe(pipe, start_time, remaining_timeout)
+    def read_from_pipe(pipe, timeout_checker)
       output = +""
 
       while (result = pipe.read_nonblock(8192, exception: false))
-        start_time, remaining_timeout = update_timeout(start_time, remaining_timeout)
+        remaining_time = timeout_checker.check!
+        raise Timeout::Error, "Command timed out" if remaining_time <= 0
 
         case result
         when :wait_readable
-          IO.select([pipe], nil, nil, remaining_timeout)
+          IO.select([pipe], nil, nil, remaining_time)
         when nil
           break
         else
@@ -84,37 +92,22 @@ module Binaryen
         end
       end
 
-      [output, remaining_timeout]
+      output
     end
 
-    def update_timeout(start_time, remaining_timeout)
-      elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-      remaining_timeout -= elapsed_time
-
-      raise Timeout::Error, "command timed out" if remaining_timeout <= 0
-
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-
-      [start_time, remaining_timeout]
-    end
-
-    def wait_or_kill(pid, start_time, remaining_timeout)
-      while remaining_timeout > 0
-        start_time, remaining_timeout = update_timeout(start_time, remaining_timeout)
+    def wait_or_kill(pid, timeout_checker)
+      loop do
+        remaining_time = timeout_checker.check!
+        raise Timeout::Error, "timed out waiting on process" if remaining_time <= 0
 
         if (_, status = Process.wait2(pid, Process::WNOHANG))
-          if status.exitstatus != 0
-            raise Binaryen::NonZeroExitStatus, "command exited with status #{status.exitstatus}"
-          end
+          raise Binaryen::NonZeroExitStatus, "command exited with status #{status.exitstatus}" if status.exitstatus != 0
 
           return true
         else
           sleep(0.1)
         end
       end
-
-      Process.kill("KILL", pid)
-      raise Timeout::Error, "timed out waiting on process"
     end
 
     def build_command(*arguments)
