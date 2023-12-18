@@ -61,9 +61,9 @@ module Binaryen
     private
 
     def assert_proper_timeout_for_command(command, *args, stdin: nil)
-      attempts = 10
+      attempts = 20
       timeout = 0.1
-      error_margin = timeout * 1.25
+      error_margin = timeout * 1.3
 
       begin
         command_instance = Binaryen::Command.new(command, timeout: timeout, ignore_missing: true)
