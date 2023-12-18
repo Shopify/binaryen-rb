@@ -53,7 +53,11 @@ module Binaryen
       write_to_pipe(iwr, stdin, timeout_checker) if stdin
       if stderr
         err_output = read_from_pipe(erd, timeout_checker)
-        write_to_pipe(stderr, err_output, timeout_checker, close_write: false)
+        begin
+          write_to_pipe(stderr, err_output, timeout_checker, close_write: false)
+        rescue Errno::EPIPE
+          # ignore
+        end
       end
       output = read_from_pipe(ord, timeout_checker)
       wait_or_kill(pid, timeout_checker, erd, stderr)
