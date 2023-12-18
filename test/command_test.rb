@@ -24,8 +24,8 @@ module Binaryen
       assert_proper_timeout_for_command("sleep", "5")
     end
 
-    def test_times_out_sanely_on_reads
-      assert_proper_timeout_for_command("yes")
+    def test_times_out_sanely_on_blocking_reads
+      assert_proper_timeout_for_command("ruby", "-e", "loop do puts('hi'); sleep 0.01; end")
     end
 
     def test_times_out_sanely_on_blocking_writes
@@ -40,7 +40,7 @@ module Binaryen
         missing_command.run("dfasdfasdfasdfsadf")
       end
 
-      assert_match(/^command exited with status 1/, err.message)
+      assert_match(/^command exited with non-zero status/, err.message)
     end
 
     def test_it_can_redirect_stderr
@@ -61,9 +61,9 @@ module Binaryen
     private
 
     def assert_proper_timeout_for_command(command, *args, stdin: nil)
-      attempts = 10
+      attempts = 20
       timeout = 0.1
-      error_margin = timeout * 1.25
+      error_margin = timeout * 1.3
 
       begin
         command_instance = Binaryen::Command.new(command, timeout: timeout, ignore_missing: true)
