@@ -15,28 +15,10 @@ module Binaryen
   #   optimized_wasm = command.run("-O4", stdin: "(module)")
   #   ```
   class Command
-    include POSIX::Spawn
-
+    MAX_OUTPUT_SIZE = 256 * 1024 * 1024
     DEFAULT_ARGS_FOR_COMMAND = {
       "wasm-opt" => ["--output=-"],
     }.freeze
-
-    class TimeoutChecker
-      def initialize(end_time:, pid:)
-        @end_time = end_time
-        @pid = pid
-      end
-
-      def check!
-        now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        if now >= @end_time
-          Process.kill("TERM", @pid)
-          raise Timeout::Error, "Command timed out"
-        end
-        remaining_time = @end_time - now
-        remaining_time
-      end
-    end
 
     def initialize(cmd, timeout: 10, ignore_missing: false)
       @cmd = command_path(cmd, ignore_missing) || raise(ArgumentError, "command not found: #{cmd}")
@@ -45,84 +27,21 @@ module Binaryen
     end
 
     def run(*arguments, stdin: nil, stderr: nil)
-      end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) + @timeout
-      command = build_command(*arguments)
-      pid, iwr, ord, erd = popen4(*command)
-      timeout_checker = TimeoutChecker.new(end_time: end_time, pid: pid)
+      args = [@cmd] + arguments + @default_args
+      child = POSIX::Spawn::Child.new(*args, input: stdin, timeout: @timeout, max: MAX_OUTPUT_SIZE)
+      stderr&.write(child.err)
+      status = child.status
 
-      write_to_pipe(iwr, stdin, timeout_checker, pid) if stdin
+      raise Binaryen::NonZeroExitStatus, "command exited with status #{status.exitstatus}" unless status.success?
 
-      if stderr
-        err_output = read_from_pipe(erd, timeout_checker)
-        write_to_pipe(stderr, err_output, timeout_checker, pid, close_write: false)
-      end
-      output = read_from_pipe(ord, timeout_checker)
-      wait_or_kill(pid, timeout_checker)
-
-      output
+      child.out
+    rescue POSIX::Spawn::MaximumOutputExceeded => e
+      raise Binaryen::MaximumOutputExceeded, e.message
+    rescue POSIX::Spawn::TimeoutExceeded => e
+      raise Timeout::Error, e.message
     end
 
     private
-
-    def write_to_pipe(pipe, stdin, timeout_checker, pid, close_write: true)
-      offset = 0
-      length = stdin.bytesize
-
-      while offset < length
-        remaining_time = timeout_checker.check!
-
-        next unless IO.select(nil, [pipe], nil, remaining_time)
-
-        begin
-          written = pipe.write_nonblock(stdin.byteslice(offset, length), exception: false)
-          offset += written if written.is_a?(Integer)
-        rescue Errno::EPIPE
-          wait_or_kill(pid, timeout_checker, pid)
-        end
-      end
-    ensure
-      pipe.close_write if close_write
-    end
-
-    def read_from_pipe(pipe, timeout_checker, close_read: true)
-      output = +""
-
-      while (result = pipe.read_nonblock(8192, exception: false))
-        remaining_time = timeout_checker.check!
-
-        case result
-        when :wait_readable
-          IO.select([pipe], nil, nil, remaining_time)
-        when nil
-          break
-        else
-          output << result
-        end
-      end
-
-      output
-    ensure
-      pipe.close_read if close_read
-    end
-
-    def wait_or_kill(pid, timeout_checker)
-      loop do
-        timeout_checker.check!
-
-        if (_, status = Process.wait2(pid, Process::WNOHANG))
-          raise Binaryen::NonZeroExitStatus,
-            "command exited with status #{status.exitstatus}" if status.exitstatus != 0
-
-          return true
-        else
-          sleep(0.1)
-        end
-      end
-    end
-
-    def build_command(*arguments)
-      [@cmd] + arguments + @default_args
-    end
 
     def command_path(cmd, ignore_missing)
       Dir[File.join(Binaryen.bindir, cmd)].first || (ignore_missing && cmd)

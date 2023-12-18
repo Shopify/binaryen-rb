@@ -12,6 +12,13 @@ module Binaryen
       assert_match(/wasm-opt version #{version_number}/, result.strip)
     end
 
+    def test_raises_when_output_exceeds_maximum
+      cmd = Binaryen::Command.new("ruby", timeout: 30, ignore_missing: true)
+      assert_raises(Binaryen::MaximumOutputExceeded) do
+        cmd.run("-e", "puts('a' * 256 * 1024 * 1024)")
+      end
+    end
+
     def test_it_accepts_stdin
       wasm_opt = Binaryen::Command.new("wasm-opt", timeout: 2)
       result = wasm_opt.run("-O4", stdin: "(module)")
