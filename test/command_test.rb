@@ -25,7 +25,7 @@ module Binaryen
     end
 
     def test_times_out_sanely_on_reads
-      assert_proper_timeout_for_command("/usr/bin/yes")
+      assert_proper_timeout_for_command("ruby", "-e", "loop do puts('yes'); sleep 0.01; end")
     end
 
     def test_times_out_sanely_on_blocking_writes
