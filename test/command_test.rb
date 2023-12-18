@@ -25,7 +25,7 @@ module Binaryen
     end
 
     def test_times_out_sanely_on_reads
-      assert_proper_timeout_for_command("yes")
+      assert_proper_timeout_for_command("/usr/bin/yes")
     end
 
     def test_times_out_sanely_on_blocking_writes
