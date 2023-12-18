@@ -120,7 +120,7 @@ end
 desc "Installs the binaryen gem"
 task install: :build do
   doit = proc do
-    sh("gem install --local #{File.join(PKG_DIR, "binaryen-#{Binaryen::VERSION}.gem")}")
+    sh("gem install #{File.join(PKG_DIR, "binaryen-#{Binaryen::VERSION}.gem")}")
   end
 
   defined?(Bundler) ? Bundler.with_unbundled_env(&doit) : doit.call
