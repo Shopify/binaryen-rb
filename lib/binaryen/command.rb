@@ -30,7 +30,7 @@ module Binaryen
       def check!
         now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         if now >= @end_time
-          Process.kill("KILL", @pid)
+          Process.kill("TERM", @pid)
           raise Timeout::Error, "Command timed out"
         end
         remaining_time = @end_time - now
@@ -50,47 +50,45 @@ module Binaryen
       pid, iwr, ord, erd = popen4(*command)
       timeout_checker = TimeoutChecker.new(end_time: end_time, pid: pid)
 
-      write_to_pipe(iwr, stdin, timeout_checker) if stdin
+      write_to_pipe(iwr, stdin, timeout_checker, pid) if stdin
+
       if stderr
         err_output = read_from_pipe(erd, timeout_checker)
-        begin
-          write_to_pipe(stderr, err_output, timeout_checker, close_write: false)
-        rescue Errno::EPIPE
-          # ignore
-        end
+        write_to_pipe(stderr, err_output, timeout_checker, pid, close_write: false)
       end
       output = read_from_pipe(ord, timeout_checker)
-      wait_or_kill(pid, timeout_checker, erd, stderr)
+      wait_or_kill(pid, timeout_checker)
 
       output
     end
 
     private
 
-    def write_to_pipe(pipe, stdin, timeout_checker, close_write: true)
+    def write_to_pipe(pipe, stdin, timeout_checker, pid, close_write: true)
       offset = 0
       length = stdin.bytesize
 
       while offset < length
         remaining_time = timeout_checker.check!
 
-        if IO.select(nil, [pipe], nil, remaining_time)
+        next unless IO.select(nil, [pipe], nil, remaining_time)
+
+        begin
           written = pipe.write_nonblock(stdin.byteslice(offset, length), exception: false)
           offset += written if written.is_a?(Integer)
-        else
-          raise Timeout::Error, "Command timed out"
+        rescue Errno::EPIPE
+          wait_or_kill(pid, timeout_checker, pid)
         end
       end
-
+    ensure
       pipe.close_write if close_write
     end
 
-    def read_from_pipe(pipe, timeout_checker)
+    def read_from_pipe(pipe, timeout_checker, close_read: true)
       output = +""
 
       while (result = pipe.read_nonblock(8192, exception: false))
         remaining_time = timeout_checker.check!
-        raise Timeout::Error, "Command timed out" if remaining_time <= 0
 
         case result
         when :wait_readable
@@ -103,15 +101,15 @@ module Binaryen
       end
 
       output
+    ensure
+      pipe.close_read if close_read
     end
 
-    def wait_or_kill(pid, timeout_checker, err_read, err_write)
+    def wait_or_kill(pid, timeout_checker)
       loop do
-        remaining_time = timeout_checker.check!
-        raise Timeout::Error, "timed out waiting on process" if remaining_time <= 0
+        timeout_checker.check!
 
         if (_, status = Process.wait2(pid, Process::WNOHANG))
-
           raise Binaryen::NonZeroExitStatus,
             "command exited with status #{status.exitstatus}" if status.exitstatus != 0
 
