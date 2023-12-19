@@ -35,9 +35,10 @@ module Binaryen
       assert_proper_timeout_for_command("ruby", "-e", "loop do puts('yes'); sleep 0.01; end")
     end
 
-    def test_times_out_sanely_on_blocking_writes
-      stdin = "y" * (64 * 1024 * 1024)
-      assert_proper_timeout_for_command("ruby", "-e", "while STDIN.getc; sleep 0.01; end", stdin: stdin)
+    def test_passes_stdin_as_a_file
+      command = Binaryen::Command.new("cat", timeout: 2, ignore_missing: true)
+      result = command.run(stdin: "hello world")
+      assert_equal("hello world", result)
     end
 
     def test_it_raises_an_error_with_a_reasonable_message_if_the_command_is_not_found
