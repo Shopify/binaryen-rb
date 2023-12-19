@@ -13,9 +13,9 @@ module Binaryen
     end
 
     def test_raises_when_output_exceeds_maximum
-      cmd = Binaryen::Command.new("ruby", timeout: 30, ignore_missing: true)
+      cmd = Binaryen::Command.new("ruby", timeout: 30, ignore_missing: true, max_output_size: 1024)
       assert_raises(Binaryen::MaximumOutputExceeded) do
-        cmd.run("-e", "puts('a' * 256 * 1024 * 1024)")
+        cmd.run("-e", "puts('a' * 1025)")
       end
     end
 
@@ -35,9 +35,10 @@ module Binaryen
       assert_proper_timeout_for_command("ruby", "-e", "loop do puts('yes'); sleep 0.01; end")
     end
 
-    def test_times_out_sanely_on_blocking_writes
-      stdin = "y" * (64 * 1024 * 1024)
-      assert_proper_timeout_for_command("ruby", "-e", "while STDIN.getc; sleep 0.01; end", stdin: stdin)
+    def test_passes_stdin_as_a_file
+      command = Binaryen::Command.new("cat", timeout: 2, ignore_missing: true)
+      result = command.run(stdin: "hello world")
+      assert_equal("hello world", result)
     end
 
     def test_it_raises_an_error_with_a_reasonable_message_if_the_command_is_not_found
