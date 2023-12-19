@@ -13,9 +13,9 @@ module Binaryen
     end
 
     def test_raises_when_output_exceeds_maximum
-      cmd = Binaryen::Command.new("ruby", timeout: 30, ignore_missing: true)
+      cmd = Binaryen::Command.new("ruby", timeout: 30, ignore_missing: true, max_output_size: 1024)
       assert_raises(Binaryen::MaximumOutputExceeded) do
-        cmd.run("-e", "puts('a' * 256 * 1024 * 1024)")
+        cmd.run("-e", "puts('a' * 1025)")
       end
     end
 

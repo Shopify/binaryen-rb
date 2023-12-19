@@ -134,7 +134,25 @@ end
 RuboCop::RakeTask.new(:lint)
 
 desc "Runs the examples"
-task examples: :install do
+task :examples do
+  success = true
+
+  Dir["examples/*.rb"].each do |example|
+    puts "👉 Running #{example}"
+
+    if system(RbConfig.ruby, example)
+      puts "✅ #{example} ran successfully"
+    else
+      puts "❌ #{example} failed"
+      success &&= false
+    end
+  end
+
+  exit 1 unless success
+end
+
+desc "Runs the examples in unbundled mode"
+task examples_unbundled: :install do
   success = true
 
   Bundler.with_unbundled_env do

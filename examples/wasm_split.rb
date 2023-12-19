@@ -18,5 +18,5 @@ wasm_code = <<~WASM
 WASM
 
 wasm_split = Binaryen::Command.new("wasm-split", timeout: 2)
-result = wasm_split.run("-", stdin: wasm_code, stderr: $stderr)
+result = wasm_split.run(stdin: wasm_code, stderr: $stderr)
 puts(result)
