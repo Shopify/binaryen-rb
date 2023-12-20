@@ -198,7 +198,7 @@ unless ENV["CI"]
     require_relative "lib/binaryen"
     includedir = Binaryen.includedir
     puts "Generating SWIG bindings for #{includedir}"
-    sh "swig -I#{includedir} -ruby -o ext/binaryen/binaryen.c -outdir lib/binaryen ext/binaryen/binaryen.i"
+    sh "swig -I#{includedir} -ruby -o ext/binaryen/binaryen.cc -outdir lib/binaryen ext/binaryen/binaryen.i"
   end
 
   Rake::Task[:compile].prerequisites.unshift("swig")

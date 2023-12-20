@@ -5,8 +5,8 @@ require_relative "../../lib/binaryen"
 
 dir_config("binaryen", Binaryen.includedir, Binaryen.libdir)
 
-append_cflags("-Wno-deprecated-declarations")
-append_cflags("-Wno-missing-noreturn")
+append_cppflags("-Wno-deprecated-declarations")
+append_cppflags("-Wno-missing-noreturn")
 
 if find_library("binaryen", "BinaryenModuleAllocateAndWrite")
   append_ldflags("-Wl,-rpath,#{Binaryen.libdir}")
