@@ -71,14 +71,14 @@ module Binaryen
           elsif data.nil?
             # At EOF, read_nonblock returns nil instead of raising EOFError.
             readers.delete(io)
+            io.close
           elsif io == stdout
             out << data_buffer
           elsif io == stderr_stream && stderr
             stderr << data_buffer
           end
-        rescue Errno::EPIPE, Errno::EINTR
-          # Handle EPIPE and EINTR errors
-          readers.delete(io)
+        rescue Errno::EINTR
+          # This means that the read was interrupted by a signal, which is not an error. So we just retry.
         end
 
         if out.bytesize > @max_output_size
