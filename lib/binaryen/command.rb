@@ -7,7 +7,7 @@ require "tempfile"
 module Binaryen
   class Command
     include POSIX::Spawn
-    DEFAULT_MAX_OUTPUT_SIZE = 256 * 1024 * 1024
+    DEFAULT_MAX_OUTPUT_SIZE = 256 * 1024 * 1024 * 1024 # 256 MiB
     DEFAULT_TIMEOUT = 10
     DEFAULT_ARGS_FOR_COMMAND = {
       "wasm-opt" => ["--output=-"],
