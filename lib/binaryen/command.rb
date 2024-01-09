@@ -51,7 +51,6 @@ module Binaryen
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       pid, stdin, stdout, stderr_stream = popen4(*args)
       stdin.close
-      @pid = pid
       readers = [stdout, stderr_stream]
 
       while readers.any?
@@ -82,12 +81,12 @@ module Binaryen
         end
 
         if out.bytesize > @max_output_size
-          Process.kill("TERM", @pid)
+          Process.kill("TERM", pid)
           raise Binaryen::MaximumOutputExceeded, "maximum output size exceeded (#{@max_output_size} bytes)"
         end
 
         if remaining_time < 0
-          Process.kill("TERM", @pid)
+          Process.kill("TERM", pid)
           raise Timeout::Error, "command timed out after #{@timeout} seconds"
         end
       end
