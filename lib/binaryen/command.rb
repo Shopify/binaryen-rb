@@ -12,6 +12,7 @@ module Binaryen
     DEFAULT_ARGS_FOR_COMMAND = {
       "wasm-opt" => ["--output=-"],
     }.freeze
+    BUFSIZE = 32 * 1024
 
     def initialize(cmd, timeout: DEFAULT_TIMEOUT, max_output_size: DEFAULT_MAX_OUTPUT_SIZE, ignore_missing: false)
       @cmd = command_path(cmd, ignore_missing) || raise(ArgumentError, "command not found: #{cmd}")
@@ -47,7 +48,6 @@ module Binaryen
 
     def spawn_command(*args, stderr: nil)
       out = "".b
-      data_buffer = "".b
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       pid, stdin, stdout, stderr_stream = popen4(*args)
       stdin.close
@@ -60,21 +60,19 @@ module Binaryen
         raise Timeout::Error, "command timed out after #{@timeout} seconds" if ready.nil?
 
         ready[0].each do |io|
-          max_amount_to_read = @max_output_size - out.bytesize + 1
-          data = io.read_nonblock(max_amount_to_read, data_buffer, exception: false)
+          data = io.read_nonblock(BUFSIZE, exception: false)
 
           if data == :wait_readable
             # If the IO object is not ready for reading, read_nonblock returns :wait_readable.
             # This isn't an error, but a notification.
-            next
           elsif data.nil?
             # At EOF, read_nonblock returns nil instead of raising EOFError.
             readers.delete(io)
             io.close
           elsif io == stdout
-            out << data_buffer
+            out << data
           elsif io == stderr_stream && stderr
-            stderr << data_buffer
+            stderr << data
           end
         rescue Errno::EINTR
           # This means that the read was interrupted by a signal, which is not an error. So we just retry.
