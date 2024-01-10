@@ -9,10 +9,7 @@ module Binaryen
     include POSIX::Spawn
     DEFAULT_MAX_OUTPUT_SIZE = 256 * 1024 * 1024 * 1024 # 256 MiB
     DEFAULT_TIMEOUT = 10
-    DEFAULT_ARGS_FOR_COMMAND = {
-      "wasm-opt" => ["--output=-"],
-    }.freeze
-    BUFSIZE = 32 * 1024
+    DEFAULT_ARGS_FOR_COMMAND = {}.freeze
 
     def initialize(cmd, timeout: DEFAULT_TIMEOUT, max_output_size: DEFAULT_MAX_OUTPUT_SIZE, ignore_missing: false)
       @cmd = command_path(cmd, ignore_missing) || raise(ArgumentError, "command not found: #{cmd}")
@@ -23,82 +20,70 @@ module Binaryen
 
     def run(*arguments, stdin: nil, stderr: nil)
       args = [@cmd] + arguments + @default_args
-
-      if stdin
-        with_stdin_tempfile(stdin) { |path| spawn_command(*args, path, stderr: stderr) }
-      else
-        spawn_command(*args, stderr: stderr)
+      Timeout.timeout(@timeout) do
+        spawn_command(*args, stderr: stderr, stdin: stdin)
       end
     end
 
     private
 
-    def with_stdin_tempfile(content)
-      Tempfile.open("binaryen-stdin") do |f|
-        f.binmode
-        f.write(content)
-        f.close
-        yield f.path
-      end
-    end
-
     def command_path(cmd, ignore_missing)
       Dir[File.join(Binaryen.bindir, cmd)].first || (ignore_missing && cmd)
     end
 
-    def spawn_command(*args, stderr: nil)
-      out = "".b
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      pid, stdin, stdout, stderr_stream = popen4(*args)
-      stdin.close
-      readers = [stdout, stderr_stream]
+    def spawn_command(*args, stderr: nil, stdin: nil)
+      pid = nil
 
-      while readers.any?
-        elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-        remaining_time = @timeout - elapsed_time
-        ready = IO.select(readers, nil, nil, remaining_time)
-        raise Timeout::Error, "command timed out after #{@timeout} seconds" if ready.nil?
+      IO.pipe do |in_read, in_write|
+        in_read.binmode
+        in_write.binmode
 
-        ready[0].each do |io|
-          data = io.read_nonblock(BUFSIZE, exception: false)
+        Tempfile.create("binaryen") do |tmpfile|
+          tmpfile.close
 
-          if data == :wait_readable
-            # If the IO object is not ready for reading, read_nonblock returns :wait_readable.
-            # This isn't an error, but a notification.
-          elsif data.nil?
-            # At EOF, read_nonblock returns nil instead of raising EOFError.
-            readers.delete(io)
-            io.close
-          elsif io == stdout
-            out << data
-          elsif io == stderr_stream && stderr
-            stderr << data
+          File.open(File::NULL, "w") do |devnull|
+            IO.pipe do |err_read, err_write|
+              pid = POSIX::Spawn.pspawn(*args, "--output=#{tmpfile.path}", in: in_read, out: devnull, err: err_write)
+              in_read.close
+              err_write.close
+
+              in_write.write(stdin) if stdin
+              in_write.close
+
+              _, status = Process.waitpid2(pid)
+              pid = nil
+
+              stderr&.write(err_read.read)
+              err_read.close
+
+              if status.signaled?
+                raise Binaryen::Signal, "command terminated by signal #{status.termsig}"
+              elsif status.exited? && !status.success?
+                raise Binaryen::NonZeroExitStatus, "command exited with status #{status.exitstatus}"
+              elsif File.size(tmpfile.path) > @max_output_size
+                raise Binaryen::MaximumOutputExceeded, "maximum output size exceeded (#{@max_output_size} bytes)"
+              end
+
+              File.binread(tmpfile.path)
+            end
           end
-        rescue Errno::EINTR
-          # This means that the read was interrupted by a signal, which is not an error. So we just retry.
+        rescue
+          if pid
+            begin
+              Process.kill(:KILL, pid)
+            rescue SystemCallError
+              # Expected
+            end
+
+            begin
+              Process.wait(pid, Process::WNOHANG)
+            rescue SystemCallError
+              # Expected
+            end
+          end
+
+          raise
         end
-
-        if out.bytesize > @max_output_size
-          Process.kill("TERM", pid)
-          raise Binaryen::MaximumOutputExceeded, "maximum output size exceeded (#{@max_output_size} bytes)"
-        end
-
-        if remaining_time < 0
-          Process.kill("TERM", pid)
-          raise Timeout::Error, "command timed out after #{@timeout} seconds"
-        end
-      end
-
-      _, status = Process.waitpid2(pid, Process::WUNTRACED)
-
-      raise Binaryen::NonZeroExitStatus, "command exited with status #{status.exitstatus}" unless status.success?
-
-      out
-    ensure
-      [stdin, stdout, stderr_stream].each do |io|
-        io.close
-      rescue
-        nil
       end
     end
   end
