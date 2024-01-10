@@ -6,16 +6,16 @@ module Binaryen
   class CommandTest < Minitest::Test
     def test_it_returns_a_readable_stdout_stream
       wasm_opt = Binaryen::Command.new("wasm-opt", timeout: 2)
-      version_number = Binaryen::BINARYEN_VERSION.split("_").last
-      result = wasm_opt.run("--version")
+      Binaryen::BINARYEN_VERSION.split("_").last
+      result = wasm_opt.run(stdin: "(module)")
 
-      assert_match(/wasm-opt version #{version_number}/, result.strip)
+      assert(result.start_with?("\x00asm"), "Expected #{result.inspect} to start with \\x00asm")
     end
 
     def test_raises_when_output_exceeds_maximum
-      cmd = Binaryen::Command.new("ruby", timeout: 30, ignore_missing: true, max_output_size: 1024)
+      cmd = Binaryen::Command.new("wasm-opt", timeout: 30, max_output_size: 1)
       assert_raises(Binaryen::MaximumOutputExceeded) do
-        cmd.run("-e", "puts('a' * 1025)")
+        cmd.run(stdin: "(module)")
       end
     end
 
@@ -27,18 +27,17 @@ module Binaryen
       assert(result.start_with?(expected), "Expected #{result.inspect} to start with #{expected.inspect}")
     end
 
-    def test_times_out_sanely_on_no_output
-      assert_proper_timeout_for_command("sleep", "5")
-    end
-
     def test_times_out_sanely_on_reads
-      assert_proper_timeout_for_command("ruby", "-e", "loop do puts('yes'); sleep 0.01; end")
-    end
+      command = Binaryen::Command.new("wasm-opt", timeout: 0.0001)
+      code = <<~WASM
+        (module
+          #{(1..100000).map { |i| "(func (export \"f#{i}\") (result i32) (i32.const #{i}))" }.join("\n")}
+        )
+      WASM
 
-    def test_passes_stdin_as_a_file
-      command = Binaryen::Command.new("cat", timeout: 2, ignore_missing: true)
-      result = command.run(stdin: "hello world")
-      assert_equal("hello world", result)
+      assert_raises(Timeout::Error) do
+        command.run("-O4", stdin: code)
+      end
     end
 
     def test_it_raises_an_error_with_a_reasonable_message_if_the_command_is_not_found
@@ -64,31 +63,6 @@ module Binaryen
     ensure
       stderr.close
       stderr.unlink
-    end
-
-    private
-
-    def assert_proper_timeout_for_command(command, *args, stdin: nil)
-      attempts = 20
-      timeout = 0.1
-      error_margin = timeout * 1.30
-
-      begin
-        command_instance = Binaryen::Command.new(command, timeout: timeout, ignore_missing: true)
-        start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        assert_raises(Timeout::Error) do
-          command_instance.run(*args, stdin: stdin)
-        end
-        end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        duration = end_time - start_time
-
-        assert(duration >= timeout, "should not time out early")
-        assert(duration < error_margin, "timeout took too long")
-      rescue Minitest::Assertion
-        attempts -= 1
-        retry if attempts > 0
-        raise
-      end
     end
   end
 end

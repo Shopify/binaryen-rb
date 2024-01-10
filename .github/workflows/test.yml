@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        ruby: ["2.7", "ruby-head"]
+        ruby: ["2.7", "3.3"]
         os: ["ubuntu-latest", "macos-latest"]
     name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
     steps:
