@@ -6,6 +6,7 @@ gemspec
 
 gem "rake"
 gem "rubocop-shopify"
+gem "rake-compiler"
 
 group :test do
   gem "minitest"

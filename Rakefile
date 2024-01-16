@@ -9,6 +9,7 @@ require "fileutils"
 require "tempfile"
 require "open-uri"
 require "digest"
+require "rake/extensiontask"
 
 BINARYEN_VERSION = Binaryen::BINARYEN_VERSION
 GITHUB_REPO = "https://github.com/WebAssembly/binaryen/releases/download/#{BINARYEN_VERSION}"
@@ -184,4 +185,23 @@ end
 
 task test: :fetch
 
-task default: [:test, :lint]
+Rake::ExtensionTask.new do |ext|
+  ext.name = "ffi"
+  ext.ext_dir = "ext/binaryen"
+  ext.lib_dir = "lib/binaryen"
+end
+
+Rake::Task[:compile].prerequisites.unshift("fetch")
+
+unless ENV["CI"]
+  task :swig do
+    require_relative "lib/binaryen"
+    includedir = Binaryen.includedir
+    puts "Generating SWIG bindings for #{includedir}"
+    sh "swig -I#{includedir} -ruby -o ext/binaryen/binaryen.cc -outdir lib/binaryen ext/binaryen/binaryen.i"
+  end
+
+  Rake::Task[:compile].prerequisites.unshift("swig")
+end
+
+task default: [:compile, :test]
