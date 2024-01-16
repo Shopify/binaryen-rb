@@ -37,8 +37,10 @@ module Binaryen
       IO.pipe do |in_read, in_write|
         in_read.binmode
         in_write.binmode
+        in_write.sync = true
+        in_write.write(stdin) if stdin
 
-        Tempfile.create("binaryen") do |tmpfile|
+        Tempfile.create("binaryen-output") do |tmpfile|
           tmpfile.close
 
           File.open(File::NULL, "w") do |devnull|
@@ -46,8 +48,6 @@ module Binaryen
               pid = POSIX::Spawn.pspawn(*args, "--output=#{tmpfile.path}", in: in_read, out: devnull, err: err_write)
               in_read.close
               err_write.close
-
-              in_write.write(stdin) if stdin
               in_write.close
 
               _, status = Process.waitpid2(pid)
