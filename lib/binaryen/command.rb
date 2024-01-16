@@ -34,21 +34,25 @@ module Binaryen
     def spawn_command(*args, stderr: nil, stdin: nil)
       pid = nil
 
-      IO.pipe do |in_read, in_write|
-        in_read.binmode
+      Tempfile.create("binaryen-input") do |in_write|
         in_write.binmode
-        in_write.sync = true
         in_write.write(stdin) if stdin
+        in_write.close
 
         Tempfile.create("binaryen-output") do |tmpfile|
           tmpfile.close
 
           File.open(File::NULL, "w") do |devnull|
             IO.pipe do |err_read, err_write|
-              pid = POSIX::Spawn.pspawn(*args, "--output=#{tmpfile.path}", in: in_read, out: devnull, err: err_write)
-              in_read.close
+              pid = POSIX::Spawn.pspawn(
+                *args,
+                "--output=#{tmpfile.path}",
+                in_write.path,
+                in: devnull,
+                out: devnull,
+                err: err_write,
+              )
               err_write.close
-              in_write.close
 
               _, status = Process.waitpid2(pid)
               pid = nil

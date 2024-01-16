@@ -59,7 +59,7 @@ module Binaryen
       end
 
       stderr.rewind
-      assert_equal("Fatal: Failed opening 'dfasdfasdfasdfsadf'\n", stderr.read)
+      assert_includes(stderr.read, "Unexpected second positional argument")
     ensure
       stderr.close
       stderr.unlink
