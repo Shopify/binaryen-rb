@@ -38,6 +38,11 @@ if enable_config("prune", true)
   end
 end
 
+File.write("Makefile", <<~MAKEFILE)
+  install:
+  \t@echo "binaryen-rb does not need to be installed"
+MAKEFILE
+
 unless File.exist?("#{__dir__}/vendor/#{ruby_platform}")
   log("[warning] no vendor directory found for #{ruby_platform}, cannot use binaryen-rb on this platform yet")
   exit
@@ -66,10 +71,5 @@ if enable_config("strip", true)
     log("[warn] failed to strip binaries: #{e}")
   end
 end
-
-File.write("Makefile", <<~MAKEFILE)
-  install:
-  \t@echo "binaryen-rb does not need to be installed"
-MAKEFILE
 
 log("[info] done (#{to_mib(total_saved)} MiB saved)")
