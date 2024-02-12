@@ -39,8 +39,8 @@ if enable_config("prune", true)
 end
 
 unless File.exist?("#{__dir__}/vendor/#{ruby_platform}")
-  log("[fatal] no vendor directory found for #{ruby_platform}, cannot use binaryen-rb on this platform yet")
-  exit 1
+  log("[warning] no vendor directory found for #{ruby_platform}, cannot use binaryen-rb on this platform yet")
+  exit
 end
 
 if enable_config("strip", true)
