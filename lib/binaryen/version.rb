@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
 module Binaryen
-  VERSION = "1.1.6.13"
+  VERSION = "1.1.6.14"
   BINARYEN_VERSION = "version_116"
 end
