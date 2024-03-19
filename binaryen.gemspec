@@ -15,5 +15,4 @@ Gem::Specification.new do |spec|
   spec.homepage = "https://github.com/Shopify/binaryen-rb"
   spec.platform = Gem::Platform::RUBY
   spec.extensions = ["extconf.rb"]
-  spec.add_dependency("posix-spawn", "~> 0.3.15")
 end
