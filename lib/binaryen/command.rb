@@ -1,12 +1,10 @@
 # frozen_string_literal: true
 
-require "posix/spawn"
 require "timeout"
 require "tempfile"
 
 module Binaryen
   class Command
-    include POSIX::Spawn
     DEFAULT_MAX_OUTPUT_SIZE = 256 * 1024 * 1024 * 1024 # 256 MiB
     DEFAULT_TIMEOUT = 10
     DEFAULT_ARGS_FOR_COMMAND = {}.freeze
@@ -44,7 +42,7 @@ module Binaryen
 
           File.open(File::NULL, "w") do |devnull|
             IO.pipe do |err_read, err_write|
-              pid = POSIX::Spawn.pspawn(
+              pid = Process.spawn(
                 *args,
                 "--output=#{tmpfile.path}",
                 in_write.path,
