@@ -15,4 +15,5 @@ Gem::Specification.new do |spec|
   spec.homepage = "https://github.com/Shopify/binaryen-rb"
   spec.platform = Gem::Platform::RUBY
   spec.extensions = ["extconf.rb"]
+  spec.required_ruby_version = ">= 3.0.0"
 end
