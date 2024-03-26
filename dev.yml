@@ -3,7 +3,7 @@ name: wasm-opt-rb
 type: ruby
 
 up:
-  - ruby: 3.2.2
+  - ruby
   - bundler
 
 commands:
