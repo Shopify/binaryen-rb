@@ -1,7 +1,6 @@
 tmp/
 pkg/
 .dev/
-Gemfile.lock
 .shadowenv.d
 .DS_Store
 vendor/
