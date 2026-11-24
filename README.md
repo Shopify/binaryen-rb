@@ -1,3 +1,5 @@
+> **This repository is no longer maintained.** It has been archived and receives no updates or security fixes.
+
 # `binaryen-rb`
 
 [![Gem Version](https://badge.fury.io/rb/binaryen.svg)](https://badge.fury.io/rb/binaryen) | [![CI](https://github.com/Shopify/binaryen-rb/actions/workflows/test.yml/badge.svg)](https://github.com/Shopify/binaryen-rb/actions/workflows/test.yml)
